@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/Shopify/sarama"
+	"github.com/Shopify/sarama" // v1.29.0
 )
 
 //同步生产模式
@@ -67,31 +67,20 @@ func NewProducer(address []string, config *sarama.Config) *Producer {
 	return producer
 }
 
-func (this *Producer) AsyncClose() {
-	time.Sleep(time.Millisecond * 1000)
+func (this *Producer) Close() {
 	this.close <- struct{}{}
-	this.AsPro.AsyncClose()
-	time.Sleep(time.Millisecond * 10)
+	this.AsPro.Close()
 }
-
-//func (this *KafASyncProducer) Close() {
-//	this.Producer.Close()
-//}
 
 //异步确认消息,使用go xxx执行
 func (this *Producer) confirm() {
 	for {
 		select {
-		case suc := <-this.AsPro.Successes(): //异步确认消息发送成功
-			if suc == nil {
-				fmt.Println("suc==nil")
-			} else {
-				fmt.Println(fmt.Sprintf("异步生产: offset:%d 分区: %d ", suc.Offset, suc.Partition))
-			}
+		case <-this.AsPro.Successes(): //异步确认消息发送成功
 		case fail := <-this.AsPro.Errors():
-			fmt.Println("err: ", fail.Err)
+			log.Println("err: ", fail.Err)
 		case <-this.close:
-			fmt.Println("confirm worker close succ!")
+			log.Println("confirm worker close succ!")
 			return
 		}
 	}

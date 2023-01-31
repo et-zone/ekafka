@@ -5,8 +5,8 @@ import (
 	"github.com/et-zone/ekafka/server"
 )
 
-var Address = []string{"118.195.250.202:9093"}
-var topic = "gzy"
+var brokers = []string{"43.137.51.7:9093"}
+var topic = "test"
 
 
 var count =1000
@@ -16,10 +16,10 @@ func main(){
 // 异步生产
 func test_sync_Producer(){
 
-	p:=server.NewDefaultProducer(Address)
-	defer p.AsyncClose()
+	p:=server.NewDefaultProducer(brokers)
+	defer p.Close()
 
-	for i:=1;i<=count;i++{
+	for i:=10;i<=count;i++{
 		msg:="sp:"+fmt.Sprintf("%v",i)
 		p.Send(topic,[]byte(msg))
 		//p.SendWithPartition(0,topic,[]byte(msg))

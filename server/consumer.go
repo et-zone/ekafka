@@ -2,11 +2,13 @@ package server
 
 import (
 	"context"
-	"github.com/Shopify/sarama"
+	"github.com/Shopify/sarama" // v1.29.0
 	"log"
 	"sync"
 	"time"
 )
+type Handler func(topic string,offset int64,msg []byte)error
+
 
 //消费组本身就会平衡不同分区数据,故不能指定消费分区
 //分组消费时,同一个消费group,可以同时消费,谁拿到谁消费
@@ -46,13 +48,13 @@ func (c *ConsumerGroup) Setup(s sarama.ConsumerGroupSession) error {
 	// Mark the consumer as ready
 	log.Println("setup succ!")
 	log.Println(s.Claims())
-	//close(c.ready)
 	c.ready=true
 	return nil
 }
 
 // Cleanup is run at the end of a session, once all ConsumeClaim goroutines have exited
 func (c *ConsumerGroup) Cleanup(s sarama.ConsumerGroupSession) error {
+	s.Commit()
 	return nil
 }
 
@@ -90,6 +92,7 @@ func (c *ConsumerGroup) syncWorker() {
 			}
 			// check if context was cancelled, signaling that the consumer should stop
 			if c.Context.Err() != nil {
+				log.Println("Succ Done ")
 				return
 			}
 		}
@@ -103,7 +106,7 @@ func (c *ConsumerGroup) Run() {
 		if c.ready==true{
 			break
 		}
-		time.Sleep(time.Second)
+		time.Sleep(time.Millisecond*20)
 	}
 
 	log.Println("consumer group running...")
@@ -119,7 +122,12 @@ func (c *ConsumerGroup) Register(f Handler) {
 	c.Func = f
 }
 
-func (c *ConsumerGroup) Cancel() {
+func (c *ConsumerGroup) Close() {
 	c.cancel()
-	time.Sleep(time.Second*3)
+	time.Sleep(time.Nanosecond*10)
+	err:=c.client.Close()
+	if err==nil{
+		log.Println("close Consumer succ!!")
+	}
+
 }

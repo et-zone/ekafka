@@ -4,18 +4,17 @@ import (
 	"fmt"
 	"github.com/Shopify/sarama"
 	"github.com/et-zone/ekafka/server"
-	"os"
-	"os/signal"
-	"syscall"
+
+	"time"
 )
-var brokers = []string{"118.195.250.202:9093"}
-var topics = []string{"gzy"}
+var brokers = []string{"43.137.51.7:9093"}
+var topics = []string{"test"}
 
 
 
 func main() {
 	cfg:=sarama.NewConfig()
-	cfg.Consumer.Offsets.Initial=sarama.OffsetOldest
+	cfg.Consumer.Offsets.Initial=sarama.OffsetNewest
 	cfg.Consumer.Offsets.AutoCommit.Enable=false
 	//分区平衡消费模式
 	//cfg.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategySticky
@@ -25,38 +24,8 @@ func main() {
 	c:=server.NewConsumerGroup(brokers,topics,"test",cfg)
 	c.Register(Do)
 	go c.Run()
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGSTOP,syscall.SIGINT,syscall.SIGKILL)
-	for {
-		s := <-ch
-		switch s {
-		case syscall.SIGQUIT:
-			c.Cancel()
-			fmt.Println("SIGSTOP")
-			return
-		case syscall.SIGSTOP:
-			c.Cancel()
-			fmt.Println("SIGSTOP")
-			return
-		case syscall.SIGHUP:
-			c.Cancel()
-			fmt.Println("SIGHUP")
-			return
-		case syscall.SIGKILL:
-			c.Cancel()
-			fmt.Println("SIGKILL")
-			return
-		case syscall.SIGTERM:
-			c.Cancel()
-			fmt.Println("SIGTERM")
-			return
-		case syscall.SIGINT:
-			c.Cancel()
-			fmt.Println("SIGINT")
-			return
-
-		}
-	}
+	time.Sleep(time.Second*2)
+	c.Close()
 
 }
 
