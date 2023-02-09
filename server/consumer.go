@@ -89,7 +89,7 @@ func (c *ConsumerGroup) syncWorker() {
 			// server-side rebalance happens, the consumer session will need to be
 			// recreated to get the new claims
 			if err := c.client.Consume(c.Context, c.Topics, c); err != nil {
-				log.Panicf("Error from consumer: %v", err)
+				log.Println("Error from consumer:", err)
 			}
 			// check if context was cancelled, signaling that the consumer should stop
 			if c.Context.Err() != nil {
@@ -125,7 +125,7 @@ func (c *ConsumerGroup) Close() {
 		break
 	}
 	if err := c.client.Close(); err != nil {
-		log.Panicf("Error closing client: %v", err)
+		log.Println("Error closing client:", err)
 	}
 	log.Println("consumer group close succ! ")
 
