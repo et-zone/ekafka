@@ -16,7 +16,7 @@ import (
 //异步生产模式
 
 type Producer struct {
-	AsPro sarama.AsyncProducer
+	asPro sarama.AsyncProducer
 	close chan struct{}
 	count int64
 }
@@ -48,7 +48,7 @@ func NewDefaultProducer(address []string) *Producer {
 		fmt.Println(err.Error())
 		return nil
 	}
-	producer.AsPro = p
+	producer.asPro = p
 	go producer.confirm()
 	return producer
 }
@@ -62,22 +62,22 @@ func NewProducer(address []string, config *sarama.Config) *Producer {
 		log.Fatalln("NewsyncProducer err: ", err.Error())
 		return nil
 	}
-	producer.AsPro = p
+	producer.asPro = p
 	go producer.confirm()
 	return producer
 }
 
-func (this *Producer) Close() {
+func (this *Producer) Close() error {
 	this.close <- struct{}{}
-	this.AsPro.Close()
+	return this.asPro.Close()
 }
 
 //异步确认消息,使用go xxx执行
 func (this *Producer) confirm() {
 	for {
 		select {
-		case <-this.AsPro.Successes(): //异步确认消息发送成功
-		case fail := <-this.AsPro.Errors():
+		case <-this.asPro.Successes(): //异步确认消息发送成功
+		case fail := <-this.asPro.Errors():
 			log.Println("err: ", fail.Err)
 		case <-this.close:
 			log.Println("confirm worker close succ!")
@@ -88,7 +88,7 @@ func (this *Producer) confirm() {
 
 //send message
 func (this *Producer) Send(topic string, msg []byte) error {
-	this.AsPro.Input() <- &sarama.ProducerMessage{
+	this.asPro.Input() <- &sarama.ProducerMessage{
 		Topic: topic,
 		Value: sarama.ByteEncoder(msg),
 	}
@@ -97,7 +97,7 @@ func (this *Producer) Send(topic string, msg []byte) error {
 
 //send message by partition
 func (this *Producer) SendWithPartition(partition int32, topic string, msg []byte) error {
-	this.AsPro.Input() <- &sarama.ProducerMessage{
+	this.asPro.Input() <- &sarama.ProducerMessage{
 		Topic:     topic,
 		Value:     sarama.ByteEncoder(msg),
 		Partition: partition,

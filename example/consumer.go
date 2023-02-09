@@ -4,34 +4,31 @@ import (
 	"fmt"
 	"github.com/Shopify/sarama"
 	"github.com/et-zone/ekafka/server"
-
 	"time"
 )
-var brokers = []string{"43.137.51.7:9093"}
+
+var brokers = []string{"43.137.40.241:9093"}
 var topics = []string{"test"}
 
-
-
 func main() {
-	cfg:=sarama.NewConfig()
-	cfg.Consumer.Offsets.Initial=sarama.OffsetNewest
-	cfg.Consumer.Offsets.AutoCommit.Enable=false
+	cfg := sarama.NewConfig()
+	cfg.Consumer.Offsets.Initial = sarama.OffsetNewest
+	cfg.Consumer.Offsets.AutoCommit.Enable = false
 	//分区平衡消费模式
 	//cfg.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategySticky
 	//cfg.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategyRoundRobin
 	//cfg.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategyRange
 
-	c:=server.NewConsumerGroup(brokers,topics,"test",cfg)
+	c := server.NewConsumerGroup(brokers, topics, "test", cfg)
 	c.Register(Do)
 	go c.Run()
-	time.Sleep(time.Second*2)
+	time.Sleep(time.Second * 4)
 	c.Close()
 
 }
 
-
-func Do(topic string,offset int64,msg []byte)error{
-	fmt.Println(fmt.Sprintf("topic=%v, offset=%v, msg=%v ",topic,offset,string(msg)))
+func Do(topic string, offset int64, msg []byte) error {
+	fmt.Println(fmt.Sprintf("topic=%v, offset=%v, msg=%v ", topic, offset, string(msg)))
 	//return errors.New("fsdaf")
 	return nil
 }

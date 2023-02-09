@@ -5,7 +5,6 @@ import (
 	"github.com/Shopify/sarama" // v1.29.0
 	"log"
 	"sync"
-	"time"
 )
 
 type Handler func(topic string, offset int64, msg []byte) error
@@ -25,8 +24,9 @@ func NewConsumerGroup(brokers, topics []string, group string, cfg *sarama.Config
 	return &ConsumerGroup{
 		WaitGroup: sync.WaitGroup{},
 		Context:   ctx,
-		ready:     false,
 		client:    c,
+		ready:     make(chan struct{}),
+		close:     make(chan struct{}),
 		Topics:    topics,
 		cancel:    cancel,
 	}
@@ -36,7 +36,8 @@ func NewConsumerGroup(brokers, topics []string, group string, cfg *sarama.Config
 type ConsumerGroup struct {
 	WaitGroup sync.WaitGroup
 	Context   context.Context
-	ready     bool
+	ready     chan struct{}
+	close     chan struct{}
 	Func      Handler
 	client    sarama.ConsumerGroup
 	Topics    []string
@@ -48,7 +49,7 @@ func (c *ConsumerGroup) Setup(s sarama.ConsumerGroupSession) error {
 	// Mark the consumer as ready
 	log.Println("setup succ!")
 	log.Println(s.Claims())
-	c.ready = true
+	c.ready <- struct{}{}
 	return nil
 }
 
@@ -92,6 +93,7 @@ func (c *ConsumerGroup) syncWorker() {
 			}
 			// check if context was cancelled, signaling that the consumer should stop
 			if c.Context.Err() != nil {
+				c.close <- struct{}{}
 				log.Println("Succ Done ")
 				return
 			}
@@ -102,18 +104,12 @@ func (c *ConsumerGroup) syncWorker() {
 func (c *ConsumerGroup) Run() {
 	c.WaitGroup.Add(1)
 	c.syncWorker()
-	for {
-		if c.ready == true {
-			break
-		}
-		time.Sleep(time.Millisecond * 20)
+	select {
+	case <-c.ready:
+		break
 	}
-
 	log.Println("consumer group running...")
 	c.WaitGroup.Wait()
-	if err := c.client.Close(); err != nil {
-		log.Panicf("Error closing client: %v", err)
-	}
 }
 func (c *ConsumerGroup) Register(f Handler) {
 	if f == nil {
@@ -124,10 +120,13 @@ func (c *ConsumerGroup) Register(f Handler) {
 
 func (c *ConsumerGroup) Close() {
 	c.cancel()
-	time.Sleep(time.Nanosecond * 10)
-	err := c.client.Close()
-	if err == nil {
-		log.Println("close Consumer succ!!")
+	select {
+	case <-c.close:
+		break
 	}
+	if err := c.client.Close(); err != nil {
+		log.Panicf("Error closing client: %v", err)
+	}
+	log.Println("consumer group close succ! ")
 
 }
