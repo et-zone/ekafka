@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 )
-type Handler func(topic string,offset int64,msg []byte)error
 
+type Handler func(topic string, offset int64, msg []byte) error
 
 //消费组本身就会平衡不同分区数据,故不能指定消费分区
 //分组消费时,同一个消费group,可以同时消费,谁拿到谁消费
@@ -25,7 +25,7 @@ func NewConsumerGroup(brokers, topics []string, group string, cfg *sarama.Config
 	return &ConsumerGroup{
 		WaitGroup: sync.WaitGroup{},
 		Context:   ctx,
-		ready:   false,
+		ready:     false,
 		client:    c,
 		Topics:    topics,
 		cancel:    cancel,
@@ -48,7 +48,7 @@ func (c *ConsumerGroup) Setup(s sarama.ConsumerGroupSession) error {
 	// Mark the consumer as ready
 	log.Println("setup succ!")
 	log.Println(s.Claims())
-	c.ready=true
+	c.ready = true
 	return nil
 }
 
@@ -102,11 +102,11 @@ func (c *ConsumerGroup) syncWorker() {
 func (c *ConsumerGroup) Run() {
 	c.WaitGroup.Add(1)
 	c.syncWorker()
-	for{
-		if c.ready==true{
+	for {
+		if c.ready == true {
 			break
 		}
-		time.Sleep(time.Millisecond*20)
+		time.Sleep(time.Millisecond * 20)
 	}
 
 	log.Println("consumer group running...")
@@ -124,9 +124,9 @@ func (c *ConsumerGroup) Register(f Handler) {
 
 func (c *ConsumerGroup) Close() {
 	c.cancel()
-	time.Sleep(time.Nanosecond*10)
-	err:=c.client.Close()
-	if err==nil{
+	time.Sleep(time.Nanosecond * 10)
+	err := c.client.Close()
+	if err == nil {
 		log.Println("close Consumer succ!!")
 	}
 
