@@ -27,6 +27,7 @@ func NewConsumerGroup(brokers, topics []string, group string, cfg *sarama.Config
 		client:    c,
 		ready:     make(chan struct{}),
 		close:     make(chan struct{}),
+		isUp:      false,
 		Topics:    topics,
 		cancel:    cancel,
 	}
@@ -37,6 +38,7 @@ type ConsumerGroup struct {
 	WaitGroup sync.WaitGroup
 	Context   context.Context
 	ready     chan struct{}
+	isUp      bool
 	close     chan struct{}
 	Func      Handler
 	client    sarama.ConsumerGroup
@@ -49,13 +51,18 @@ func (c *ConsumerGroup) Setup(s sarama.ConsumerGroupSession) error {
 	// Mark the consumer as ready
 	log.Println("setup succ!")
 	log.Println(s.Claims())
-	c.ready <- struct{}{}
+	if c.isUp == false {
+		c.isUp = true
+		c.ready <- struct{}{}
+	}
+
 	return nil
 }
 
 // Cleanup is run at the end of a session, once all ConsumeClaim goroutines have exited
 func (c *ConsumerGroup) Cleanup(s sarama.ConsumerGroupSession) error {
 	s.Commit()
+	log.Println("Cleanup succ!")
 	return nil
 }
 
@@ -105,7 +112,10 @@ func (c *ConsumerGroup) Run() {
 	c.WaitGroup.Add(1)
 	c.syncWorker()
 	select {
-	case <-c.ready:
+	case _, ok := <-c.ready:
+		if ok {
+			close(c.ready)
+		}
 		break
 	}
 	log.Println("consumer group running...")
