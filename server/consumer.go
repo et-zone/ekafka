@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/Shopify/sarama" // v1.29.0
 	"log"
+	"runtime/debug"
 	"sync"
 )
 
@@ -61,13 +62,19 @@ func (c *ConsumerGroup) Setup(s sarama.ConsumerGroupSession) error {
 
 // Cleanup is run at the end of a session, once all ConsumeClaim goroutines have exited
 func (c *ConsumerGroup) Cleanup(s sarama.ConsumerGroupSession) error {
-	s.Commit()
+	//s.Commit()
 	log.Println("Cleanup succ!")
 	return nil
 }
 
 // ConsumeClaim must start a consumer loop of ConsumerGroupClaim's Messages().
 func (c *ConsumerGroup) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Println("ConsumeClaim Catch exception", err, string(debug.Stack()))
+			return
+		}
+	}()
 	// NOTE:
 	// Do not move the code below to a goroutine.
 	// The `ConsumeClaim` itself is called within a goroutine, see:

@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-var brokers = []string{"43.137.40.241:9093"}
+var broker = []string{"192.168.0.112:9092"}
 var topic = "test"
 
 var count = 1000
@@ -18,7 +18,7 @@ func main() {
 // 异步生产
 func test_sync_Producer() {
 
-	p := server.NewDefaultProducer(brokers)
+	p := server.NewDefaultProducer(broker)
 	defer p.Close()
 
 	for i := 900; i <= count; i++ {

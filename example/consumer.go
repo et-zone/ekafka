@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-var brokers = []string{"43.137.40.241:9093"}
+var brokers = []string{"192.168.0.112:9092"}
 var topics = []string{"test"}
 
 func main() {
@@ -22,7 +22,7 @@ func main() {
 	c := server.NewConsumerGroup(brokers, topics, "test", cfg)
 	c.Register(Do)
 	go c.Run()
-	time.Sleep(time.Second * 4)
+	time.Sleep(time.Second * 10)
 	c.Close()
 
 }
